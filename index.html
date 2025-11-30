@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Seismic Base Shear Calculator with PHIVOLCS Map Portal</title>
+    
+
+  </head>
+    
+  <body>
+  <!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Seismic Base Shear Calculator (NSCP 2015 + Export)</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg1:#0f1724; --card:#fff; --accent:#e74c3c; --accent-dark:#c0392b; --blue:#2980b9; --muted:#6b7280;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:Roboto,system-ui,-apple-system,Segoe UI,Arial; background:linear-gradient(180deg,#081224 0%,#0f1724 60%); color:#0f1724;
+  padding:20px; display:flex; justify-content:center;
+}
+.container{ width:100%; max-width:1080px; }
+.card{
+  background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98));
+  border-radius:14px; padding:18px; box-shadow: 0 12px 40px rgba(2,6,23,0.6);
+}
+.header{ display:flex; gap:14px; align-items:center; }
+.logo{ width:84px; height:84px; border-radius:12px; background:#071028; display:flex; align-items:center; justify-content:center; }
+.header h1{ margin:0; font-size:20px; color:#0b1724; }
+.header p{ margin:6px 0 0; color:#475569; font-size:13px; }
+.wave{ height:60px; margin-top:12px; border-radius:8px; overflow:hidden; position:relative; background:linear-gradient(90deg, rgba(231,76,60,0.04), rgba(41,128,185,0.03)); }
+.wave .bar{ position:absolute; left:-40%; top:18px; width:200%; height:18px; background:linear-gradient(90deg, transparent 0 30px, rgba(231,76,60,0.06) 30px 60px); animation:waveMove 6s linear infinite; }
+@keyframes waveMove{ from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+.grid{ display:grid; grid-template-columns:1fr 420px; gap:14px; margin-top:14px; }
+@media(max-width:980px){ .grid{ grid-template-columns:1fr; } .right-col{ order:2; } }
+
+.panel{ background:var(--card); padding:12px; border-radius:10px; box-shadow:0 6px 18px rgba(2,6,23,0.08); }
+.small{ font-size:13px; color:var(--muted); }
+
+.form-row{ display:flex; gap:8px; margin-bottom:10px; }
+.form-row .col{ flex:1; }
+
+label{ display:block; font-weight:700; font-size:13px; margin-bottom:6px; color:#374151; }
+input[type=number], input[type=text], select, textarea { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e6eef8; font-size:14px; background:#fff; }
+textarea{ resize:vertical; min-height:64px; }
+
+.actions{ display:flex; gap:8px; margin-top:8px; }
+.btn{ padding:10px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:700; }
+.btn-primary{ background:var(--accent); color:#fff; }
+.btn-ghost{ background:transparent; color:var(--blue); border:1px solid rgba(41,128,185,0.12); }
+
+/* PHIVOLCS button style (gradient red + pin icon) */
+.btn-phivolcs{
+  background: linear-gradient(180deg, #ff6b6b, #e74c3c);
+  color: white; display:inline-flex; gap:8px; align-items:center; border-radius:8px; padding:8px 10px; font-weight:700; border:none; cursor:pointer;
+  box-shadow: 0 6px 18px rgba(231,76,60,0.18);
+}
+
+/* warning for site class F */
+.warning {
+  background: #fff5f5;
+  border:1px solid #f5c2c2;
+  color:#7a1f1f;
+  padding:10px;
+  border-radius:8px;
+  font-size:13px;
+  margin-top:8px;
+}
+
+/* result area */
+.results{ margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; }
+.result-card{ background:#fff; border-radius:10px; padding:12px; flex:1; min-width:220px; box-shadow:0 8px 24px rgba(2,6,23,0.06); }
+.result-card h3{ margin:0 0 8px; color:var(--blue); }
+
+.table-wrap{ overflow:auto; max-height:360px; border-radius:8px; margin-top:10px; }
+table{ width:100%; border-collapse:collapse; font-size:13px; }
+th, td{ padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; }
+th{ background:#f8fafc; font-weight:700; color:#0f1724; }
+
+.note{ font-size:12px; color:#6b7280; margin-top:8px; }
+
+@keyframes shake{0%{transform:translate(0)}20%{transform:translate(-8px)}40%{transform:translate(8px)}60%{transform:translate(-6px)}80%{transform:translate(6px)}100%{transform:translate(0)}}
+.shake{ animation:shake .45s; }
+
+/* export buttons */
+.export-row{ display:flex; gap:8px; margin-top:10px; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="card" id="rootCard">
+
+      <!-- Header -->
+      <div class="header">
+        <div class="logo" aria-hidden="true">
+          <!-- seismograph icon -->
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" width="56" height="56" aria-hidden="true">
+            <rect width="64" height="64" rx="10" fill="#071028"></rect>
+            <polyline points="6,36 12,24 18,46 26,30 34,44 42,18 50,54 58,34" stroke="#ffb4a6" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="2" y1="36" x2="62" y2="36" stroke="#21303a" stroke-width="0.9"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Seismic Base Shear Calculator (NSCP 2015)</h1>
+          <p class="small">Compute C<sub>s</sub> using NSCP workflow (Fa/Fv → SMS → SDS → C<sub>s</sub>). Ss/S1/Fa/Fv are auto-computed from NSCP tables based on Location & Site Class (except Site Class F).</p>
+        </div>
+      </div>
+
+      <div class="wave" aria-hidden="true"><div class="bar"></div></div>
+
+      <!-- main grid -->
+      <div class="grid">
+
+        <!-- left: inputs -->
+        <div class="panel">
+          <label>Seismic coefficient input method</label>
+          <div class="form-row">
+            <div class="col">
+              <label><input type="radio" name="mode" value="ns" checked> NSCP Ca/Cv workflow (recommended)</label>
+            </div>
+            <div class="col">
+              <label><input type="radio" name="mode" value="manual"> Enter C<sub>s</sub> manually</label>
+            </div>
+          </div>
+
+          <!-- NSCP workflow block -->
+          <div id="nsBlock">
+            <label>Location (maps / seismic zone)</label>
+            <select id="locationSelect">
+              <option value="zone4" selected>Most of Philippines — (Mapped/Default → Zone 4)</option>
+              <option value="zone2">Tawi-Tawi / Palawan / Sulu — (Mapped → Zone 2)</option>
+            </select>
+
+            <label style="margin-top:8px;">Site class (NSCP A–F)</label>
+            <select id="siteClass">
+              <option value="A">A — Hard rock</option>
+              <option value="B">B — Rock</option>
+              <option value="C" selected>C — Very dense soil and rock</option>
+              <option value="D">D — Stiff soil</option>
+              <option value="E">E — Soft soil</option>
+              <option value="F">F — Very soft or lossy (use with geotech)</option>
+            </select>
+
+            <!-- Display computed spectral and Fa/Fv (readonly) -->
+            <div class="form-row" style="margin-top:8px;">
+              <div class="col">
+                <label>S<sub>s</sub> (g) — mapped (auto)</label>
+                <input id="Ss_disp" type="text" readonly />
+              </div>
+              <div class="col">
+                <label>S<sub>1</sub> (g) — mapped (auto)</label>
+                <input id="S1_disp" type="text" readonly />
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top:8px;">
+              <div class="col">
+                <label>Fa — site coefficient (auto / manual for F)</label>
+                <input id="Fa_disp" type="text" readonly />
+                <!-- manual input shown only for Site Class F -->
+                <input id="Fa_manual" type="number" step="0.01" placeholder="Enter Fa (site-specific)" style="display:none; margin-top:6px;" />
+              </div>
+              <div class="col">
+                <label>Fv — site coefficient (auto / manual for F)</label>
+                <input id="Fv_disp" type="text" readonly />
+                <!-- manual input shown only for Site Class F -->
+                <input id="Fv_manual" type="number" step="0.01" placeholder="Enter Fv (site-specific)" style="display:none; margin-top:6px;" />
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top:8px;">
+              <div class="col">
+                <label>SMS = Fa × S<sub>s</sub> (auto / computed)</label>
+                <input id="SMS_disp" type="text" readonly />
+              </div>
+              <div class="col">
+                <label>SM1 = Fv × S<sub>1</sub> (auto / computed)</label>
+                <input id="SM1_disp" type="text" readonly />
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top:8px;">
+              <div class="col">
+                <label>SDS = 2/3 × SMS (auto / computed)</label>
+                <input id="SDS_disp" type="text" readonly />
+              </div>
+              <div class="col">
+                <label>SD1 = 2/3 × SM1 (auto / computed)</label>
+                <input id="SD1_disp" type="text" readonly />
+              </div>
+            </div>
+
+            <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+              <button class="btn-phivolcs" id="phivolcsBtn" title="Open PHIVOLCS Map Portal">
+                <!-- map pin icon -->
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2C8.686 2 6 4.686 6 8c0 5.25 6 12 6 12s6-6.75 6-12c0-3.314-2.686-6-6-6z" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="8" r="2" fill="white"/>
+                </svg>
+                PHIVOLCS Map Portal
+              </button>
+              <div class="small">Zone is set by Location; site class modifies Fa/Fv per NSCP table.</div>
+            </div>
+
+            <div id="fWarning" class="warning" style="display:none;">
+              <strong>⚠ Site Class F requires site-specific ground response analysis (NSCP 2015).</strong>
+              Fa and Fv are not provided by the table for Site Class F — paste values from your geotechnical report into the Fa/Fv fields above to proceed.
+            </div>
+
+            <div class="note" id="nsNote" style="margin-top:8px;">S<sub>s</sub>, S<sub>1</sub>, Fa, Fv (A–E) are computed from the NSCP table and cannot be edited. Use PHIVOLCS map to confirm mapped spectral values if needed. For Site Class F, enter Fa/Fv manually.</div>
+          </div>
+
+          <!-- manual Cs block -->
+          <div id="manualBlock" style="display:none; margin-top:10px;">
+            <label>Enter design seismic coefficient C<sub>s</sub> (manual)</label>
+            <input id="manualCs" type="number" step="0.0001" placeholder="e.g., 0.08" />
+            <div class="note">If you have Ca/Cv and Ss/S1, you can compute C<sub>s</sub> offline and paste it here.</div>
+          </div>
+
+          <hr style="margin:12px 0; border:none; border-top:1px solid #f1f5f9">
+
+          <!-- building inputs -->
+          <div>
+            <div class="form-row">
+              <div class="col">
+                <label>Number of stories (n)</label>
+                <input id="n" type="number" min="1" step="1" placeholder="e.g., 5" />
+              </div>
+              <div class="col">
+                <label>Typical story height (m)</label>
+                <input id="h" type="number" min="2" step="0.1" placeholder="e.g., 3.0" />
+              </div>
+            </div>
+
+            <label>Total building weight W (kN)</label>
+            <input id="W" type="number" min="0" step="1" placeholder="Total dead + part live (kN), e.g., 6000" />
+
+            <div class="form-row" style="margin-top:8px;">
+              <div class="col">
+                <label>Importance factor I<sub>e</sub></label>
+                <select id="Ie"><option value="1.0">1.00 — Normal</option><option value="1.25">1.25 — Important</option><option value="1.5">1.50 — Essential</option></select>
+              </div>
+              <div class="col">
+                <label>Response reduction R</label>
+                <select id="R"><option value="5">5 — RC Moment Frame</option><option value="4">4 — Steel</option><option value="3">3 — Low ductility</option></select>
+              </div>
+            </div>
+
+            <div style="margin-top:8px;">
+              <label>Distribution method</label>
+              <select id="dist">
+                <option value="wh">wᵢ·hᵢ (mass × height) — recommended</option>
+                <option value="tri">Triangular (i) — simple</option>
+                <option value="equal">Equal mass</option>
+              </select>
+            </div>
+
+            <div id="massInputBox" style="display:none; margin-top:8px;">
+              <label>Per-floor masses (kN) — comma / space separated</label>
+              <textarea id="massesTxt" placeholder="e.g., 1200,1200,1100,1100,1000"></textarea>
+              <div class="note">If left blank, masses are assumed equal (W/n) and scaled to total W.</div>
+            </div>
+          </div>
+
+          <div class="actions" style="margin-top:12px;">
+            <button class="btn btn-primary" id="computeBtn">Compute Seismic Loads</button>
+            <button class="btn btn-ghost" id="clearBtn">Reset</button>
+          </div>
+
+        </div>
+
+        <!-- right column: results & export -->
+        <div class="right-col">
+          <div class="panel">
+            <div class="results" id="results" style="display:none;">
+              <div class="result-card">
+                <h3>Summary</h3>
+                <div class="small">Seismic coefficient C<sub>s</sub></div>
+                <div id="CsOut" style="font-size:20px; font-weight:700; margin-top:6px">—</div>
+
+                <div style="height:10px"></div>
+                <div class="small">Total base shear V</div>
+                <div id="VOut" style="font-size:18px; font-weight:700; margin-top:6px">— kN</div>
+
+                <div class="note" id="methodNote" style="margin-top:8px"></div>
+
+                <div class="export-row">
+                  <button class="btn btn-ghost" id="csvBtn">Export CSV</button>
+                  <button class="btn btn-ghost" id="printBtn">Print / Save PDF</button>
+                </div>
+              </div>
+
+              <div class="result-card" style="flex:1 1 420px;">
+                <h3>Story distribution</h3>
+                <div id="distTxt" class="small">—</div>
+                <div class="table-wrap">
+                  <table id="storyTbl">
+                    <thead><tr><th>Story</th><th>Mass wᵢ (kN)</th><th>wᵢ·hᵢ</th><th>Fᵢ (kN)</th><th>Cumulative (kN)</th></tr></thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div id="disclaimer" class="note" style="margin-top:10px; color:#7b8794;">
+              <strong>Disclaimer:</strong> This tool provides preliminary calculations. For final design, use NSCP 2015 tables for F<sub>a</sub>/F<sub>v</sub>, PHIVOLCS spectral maps (S<sub>s</sub>/S<sub>1</sub>), geotechnical reports, and detailed structural analysis.
+            </div>
+          </div>
+        </div>
+
+      </div> <!-- grid -->
+
+    </div> <!-- card -->
+  </div> <!-- container -->
+
+<script>
+/* ---- NSCP table (from user-supplied table) ----
+Seismic Zone  Site Class  Fa   Fv   Ss    S1
+Note: Site Class F is intentionally NOT provided here because NSCP requires site-specific analysis.
+*/
+const NSCP_TABLE = {
+  // zone: { siteClass: {Fa, Fv, Ss, S1} }  (A-E only)
+  "1": {
+    "A": {Fa:1.0, Fv:1.0, Ss:0.15, S1:0.06},
+    "B": {Fa:1.0, Fv:1.0, Ss:0.15, S1:0.06},
+    "C": {Fa:1.2, Fv:1.5, Ss:0.15, S1:0.06},
+    "D": {Fa:1.4, Fv:2.4, Ss:0.15, S1:0.06},
+    "E": {Fa:1.7, Fv:3.5, Ss:0.15, S1:0.06}
+  },
+  "2": {
+    "A": {Fa:1.0, Fv:1.0, Ss:0.20, S1:0.08},
+    "B": {Fa:1.0, Fv:1.0, Ss:0.20, S1:0.08},
+    "C": {Fa:1.2, Fv:1.5, Ss:0.20, S1:0.08},
+    "D": {Fa:1.4, Fv:2.4, Ss:0.20, S1:0.08},
+    "E": {Fa:1.7, Fv:3.5, Ss:0.20, S1:0.08}
+  },
+  "3": {
+    "A": {Fa:1.0, Fv:1.0, Ss:0.30, S1:0.12},
+    "B": {Fa:1.0, Fv:1.0, Ss:0.30, S1:0.12},
+    "C": {Fa:1.2, Fv:1.5, Ss:0.30, S1:0.12},
+    "D": {Fa:1.4, Fv:2.4, Ss:0.30, S1:0.12},
+    "E": {Fa:1.7, Fv:3.5, Ss:0.30, S1:0.12}
+  },
+  "4": {
+    "A": {Fa:1.0, Fv:1.0, Ss:0.40, S1:0.16},
+    "B": {Fa:1.0, Fv:1.0, Ss:0.40, S1:0.16},
+    "C": {Fa:1.2, Fv:1.5, Ss:0.40, S1:0.16},
+    "D": {Fa:1.4, Fv:2.4, Ss:0.40, S1:0.16},
+    "E": {Fa:1.7, Fv:3.5, Ss:0.40, S1:0.16}
+  }
+};
+
+/* Utility & UI wiring */
+const modeEls = document.querySelectorAll('input[name="mode"]');
+const nsBlock = document.getElementById('nsBlock');
+const manualBlock = document.getElementById('manualBlock');
+modeEls.forEach(el => el.addEventListener('change', ()=> {
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  if(mode === 'ns'){ nsBlock.style.display='block'; manualBlock.style.display='none'; }
+  else { nsBlock.style.display='none'; manualBlock.style.display='block'; }
+}));
+
+// show mass input area only for w*h
+document.getElementById('dist').addEventListener('change', ()=> {
+  document.getElementById('massInputBox').style.display = document.getElementById('dist').value === 'wh' ? 'block' : 'none';
+});
+
+// PHIVOLCS button
+document.getElementById('phivolcsBtn').addEventListener('click', ()=> {
+  window.open('https://maps.phivolcs.dost.gov.ph', '_blank', 'noopener');
+});
+
+// clear
+document.getElementById('clearBtn').addEventListener('click', ()=> {
+  // reset inputs
+  document.getElementById('locationSelect').value = 'zone4';
+  document.getElementById('siteClass').value = 'C';
+  // computed displays
+  updateComputedFromTable();
+  document.getElementById('manualCs').value='';
+  document.getElementById('n').value=''; document.getElementById('h').value=''; document.getElementById('W').value='';
+  document.getElementById('massesTxt').value=''; document.getElementById('results').style.display='none';
+});
+
+/* Shake helper */
+function doShake(){
+  const root = document.getElementById('rootCard');
+  root.classList.add('shake');
+  setTimeout(()=> root.classList.remove('shake'), 480);
+}
+
+/* Map location -> seismic zone (per requirement)
+   Most of Philippines -> zone4 (default)
+   Tawi-Tawi / Palawan / Sulu -> zone2
+*/
+function getZoneFromLocation(locValue){
+  if(locValue === 'zone2') return "2";
+  // default:
+  return "4";
+}
+
+/* Update computed fields from NSCP table when location or site class changes */
+function updateComputedFromTable(){
+  const loc = document.getElementById('locationSelect').value;
+  const site = document.getElementById('siteClass').value || 'C';
+  const zone = getZoneFromLocation(loc);
+
+  // handle Site Class F specially: requires site-specific analysis
+  if(site === 'F'){
+    // clear auto displays
+    document.getElementById('Ss_disp').value = '-';
+    document.getElementById('S1_disp').value = '-';
+    document.getElementById('Fa_disp').value = '-';
+    document.getElementById('Fv_disp').value = '-';
+    document.getElementById('SMS_disp').value = '-';
+    document.getElementById('SM1_disp').value = '-';
+    document.getElementById('SDS_disp').value = '-';
+    document.getElementById('SD1_disp').value = '-';
+
+    // show manual inputs and warning
+    document.getElementById('Fa_manual').style.display = 'block';
+    document.getElementById('Fv_manual').style.display = 'block';
+    document.getElementById('fWarning').style.display = 'block';
+
+    // clear any previously stored computed values to ensure compute() knows F is special
+    window.__computedNSCP = null;
+    return;
+  }
+
+  // for A-E, hide manual inputs and warning
+  document.getElementById('Fa_manual').style.display = 'none';
+  document.getElementById('Fv_manual').style.display = 'none';
+  document.getElementById('fWarning').style.display = 'none';
+  // also clear manual input values
+  document.getElementById('Fa_manual').value = '';
+  document.getElementById('Fv_manual').value = '';
+
+  const entry = NSCP_TABLE[zone] && NSCP_TABLE[zone][site];
+  if(!entry){
+    // fallback
+    document.getElementById('Ss_disp').value = '-';
+    document.getElementById('S1_disp').value = '-';
+    document.getElementById('Fa_disp').value = '-';
+    document.getElementById('Fv_disp').value = '-';
+    document.getElementById('SMS_disp').value = '-';
+    document.getElementById('SM1_disp').value = '-';
+    document.getElementById('SDS_disp').value = '-';
+    document.getElementById('SD1_disp').value = '-';
+    window.__computedNSCP = null;
+    return;
+  }
+  const Fa = entry.Fa;
+  const Fv = entry.Fv;
+  const Ss = entry.Ss;
+  const S1 = entry.S1;
+  const SMS = Fa * Ss;
+  const SM1 = Fv * S1;
+  const SDS = (2/3) * SMS;
+  const SD1 = (2/3) * SM1;
+
+  document.getElementById('Ss_disp').value = Ss.toFixed(3);
+  document.getElementById('S1_disp').value = S1.toFixed(3);
+  document.getElementById('Fa_disp').value = Fa.toFixed(2);
+  document.getElementById('Fv_disp').value = Fv.toFixed(2);
+  document.getElementById('SMS_disp').value = SMS.toFixed(3);
+  document.getElementById('SM1_disp').value = SM1.toFixed(3);
+  document.getElementById('SDS_disp').value = SDS.toFixed(3);
+  document.getElementById('SD1_disp').value = SD1.toFixed(3);
+
+  // persist current computed aux for compute step
+  window.__computedNSCP = { zone, site, Fa, Fv, Ss, S1, SMS, SM1, SDS, SD1 };
+}
+
+/* invoke update when user changes location or site class */
+document.getElementById('locationSelect').addEventListener('change', updateComputedFromTable);
+document.getElementById('siteClass').addEventListener('change', updateComputedFromTable);
+
+// initialize computed displays on load
+updateComputedFromTable();
+
+/* Parse masses textarea into array of numbers scaled to W */
+function parseMasses(n, W){
+  const txt = document.getElementById('massesTxt').value.trim();
+  if(!txt) return null;
+  const parts = txt.split(/[\s,;]+/).filter(Boolean);
+  const nums = parts.map(p => parseFloat(p)).filter(x => !isNaN(x) && x>=0);
+  if(nums.length === 0) return null;
+  // pad or truncate to n
+  if(nums.length < n){
+    const avg = nums.reduce((a,b)=>a+b,0)/nums.length;
+    while(nums.length < n) nums.push(avg);
+  }
+  if(nums.length > n) nums.length = n;
+  // scale so sum = W
+  const sum = nums.reduce((a,b)=>a+b,0);
+  if(sum <= 0) return Array.from({length:n}, ()=> W/n);
+  const scale = W / sum;
+  return nums.map(x => x * scale);
+}
+
+/* Main compute */
+document.getElementById('computeBtn').addEventListener('click', ()=> {
+  doShake();
+  setTimeout(runCompute, 120);
+});
+
+function runCompute(){
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const Ie = parseFloat(document.getElementById('Ie').value) || 1.0;
+  const R = parseFloat(document.getElementById('R').value) || 5.0;
+  const dist = document.getElementById('dist').value;
+  const n = parseInt(document.getElementById('n').value,10);
+  const h = parseFloat(document.getElementById('h').value);
+  let W = parseFloat(document.getElementById('W').value);
+
+  if(isNaN(n) || n<=0 || isNaN(h) || h<=0 || isNaN(W) || W<=0){ alert('Enter positive n, h and W'); return; }
+
+  // compute Cs
+  let Cs = null;
+  let aux = null;
+  if(mode === 'manual'){
+    const val = parseFloat(document.getElementById('manualCs').value);
+    if(isNaN(val) || val<=0){ alert('Enter valid manual C_s'); return; }
+    Cs = val;
+    aux = null;
+  } else {
+    // NSCP workflow
+    const site = document.getElementById('siteClass').value || 'C';
+    // special handling for Site Class F
+    if(site === 'F'){
+      // read manual Fa/Fv
+      const Fa_manual = parseFloat(document.getElementById('Fa_manual').value);
+      const Fv_manual = parseFloat(document.getElementById('Fv_manual').value);
+      if(isNaN(Fa_manual) || isNaN(Fv_manual) || Fa_manual <= 0 || Fv_manual <= 0){
+        alert('Site Class F requires manual Fa and Fv values from a geotechnical report. Please enter Fa and Fv.');
+        return;
+      }
+      // For Site Class F we do not have Ss/S1 from table; user should obtain Ss/S1 from PHIVOLCS maps.
+      // In this implementation we will use the zone default Ss/S1 as a fallback if the user hasn't retrieved map values.
+      // Get zone default Ss/S1 from table for the zone (use zone's E values as conservative fallback)
+      const zone = getZoneFromLocation(document.getElementById('locationSelect').value);
+      const fallbackEntry = NSCP_TABLE[zone] && NSCP_TABLE[zone]['E'];
+      // If fallback unavailable, stop
+      if(!fallbackEntry){
+        alert('Cannot determine fallback spectral values for this zone. Choose a different location or provide Ss/S1 values externally.');
+        return;
+      }
+      const Ss_fallback = fallbackEntry.Ss;
+      const S1_fallback = fallbackEntry.S1;
+
+      // compute SMS, SM1, SDS, SD1 using manual Fa/Fv and fallback Ss/S1
+      const SMS = Fa_manual * Ss_fallback;
+      const SM1 = Fv_manual * S1_fallback;
+      const SDS = (2/3) * SMS;
+      const SD1 = (2/3) * SM1;
+
+      // design seismic coefficient Cs = (SDS * Ie) / R
+      Cs = (SDS * Ie) / R;
+
+      aux = { Fa: Fa_manual, Fv: Fv_manual, Ss: Ss_fallback, S1: S1_fallback, SMS, SM1, SDS, SD1, zone, site };
+    } else {
+      // For A-E we expect computed values to be available
+      const computed = window.__computedNSCP;
+      if(!computed){
+        alert('NSCP table values unavailable. Choose Location and Site Class.');
+        return;
+      }
+      const Fa = computed.Fa;
+      const Fv = computed.Fv;
+      const Ss = computed.Ss;
+      const S1 = computed.S1;
+      const SMS = computed.SMS;
+      const SM1 = computed.SM1;
+      const SDS = computed.SDS;
+      const SD1 = computed.SD1;
+
+      // design seismic coefficient Cs = (SDS * Ie) / R  (per ASCE7 simplified equivalent)
+      Cs = (SDS * Ie) / R;
+
+      aux = { Fa, Fv, Ss, S1, SMS, SM1, SDS, SD1, zone: computed.zone, site: computed.site };
+    }
+  }
+
+  // compute base shear
+  const V = Cs * W;
+
+  // compute masses array depending on distribution
+  let masses = null;
+  if(dist === 'wh'){
+    masses = parseMasses(n, W);
+    if(!masses) masses = Array.from({length:n}, ()=> W / n);
+  } else {
+    masses = Array.from({length:n}, ()=> W / n);
+  }
+
+  // compute wi*hi vector
+  let wi_hi = [];
+  if(dist === 'wh'){
+    for(let i=0;i<n;i++){
+      wi_hi.push( masses[i] * ((i+1) * h) );
+    }
+  } else if(dist === 'tri'){
+    // triangular proportional factors: use factor proportional to story index (i+1)
+    for(let i=0;i<n;i++){
+      wi_hi.push( (i+1) );
+    }
+    // convert factors to weight-equivalent by multiplying by (W/n)*h
+    const meanMass = W / n;
+    wi_hi = wi_hi.map(f => f * meanMass * h);
+  } else { // equal
+    for(let i=0;i<n;i++){
+      wi_hi.push( masses[i] * ((i+1) * h) );
+    }
+  }
+
+  const sum_wi_hi = wi_hi.reduce((a,b)=>a+b,0);
+  const Fi = wi_hi.map(v => (v / sum_wi_hi) * V);
+
+  // prepare rows (base=1 upward)
+  const tbody = document.querySelector('#storyTbl tbody');
+  tbody.innerHTML = '';
+  let cumulative = 0;
+  for(let i=0;i<n;i++){
+    cumulative += Fi[i];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i+1}</td><td>${masses[i].toFixed(2)}</td><td>${wi_hi[i].toFixed(2)}</td><td>${Fi[i].toFixed(2)}</td><td>${cumulative.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  // output summary
+  document.getElementById('CsOut').textContent = Cs.toFixed(4);
+  document.getElementById('VOut').textContent = V.toFixed(2) + ' kN';
+  if(aux){
+    // Update the computed displays so the user sees values used (especially for Site Class F manual)
+    document.getElementById('Fa_disp').value = aux.Fa.toFixed(2);
+    document.getElementById('Fv_disp').value = aux.Fv.toFixed(2);
+    document.getElementById('Ss_disp').value = aux.Ss.toFixed(3);
+    document.getElementById('S1_disp').value = aux.S1.toFixed(3);
+    document.getElementById('SMS_disp').value = aux.SMS.toFixed(3);
+    document.getElementById('SM1_disp').value = aux.SM1.toFixed(3);
+    document.getElementById('SDS_disp').value = aux.SDS.toFixed(3);
+    document.getElementById('SD1_disp').value = aux.SD1.toFixed(3);
+
+    document.getElementById('methodNote').textContent = `Zone ${aux.zone} / Site ${aux.site} | Fa=${aux.Fa.toFixed(2)}, Fv=${aux.Fv.toFixed(2)} | SMS=${aux.SMS.toFixed(3)}, SM1=${aux.SM1.toFixed(3)}, SDS=${aux.SDS.toFixed(3)}, SD1=${aux.SD1.toFixed(3)}`;
+  } else {
+    document.getElementById('methodNote').textContent = `Method: manual C_s. Distribution: ${dist}`;
+  }
+
+  document.getElementById('distTxt').textContent = `Distribution: ${dist === 'wh' ? 'wᵢ·hᵢ (mass×height)' : (dist==='tri' ? 'triangular (i)' : 'equal mass')}`;
+  document.getElementById('results').style.display = 'flex';
+  // scroll into view
+  document.getElementById('rootCard').scrollIntoView({ behavior:'smooth' });
+}
+
+/* Export CSV */
+document.getElementById('csvBtn').addEventListener('click', ()=> {
+  const CsText = document.getElementById('CsOut').textContent;
+  const VText = document.getElementById('VOut').textContent;
+  if(!CsText || CsText === '—'){ alert('Compute results first'); return; }
+  const rows = [];
+  rows.push(['C_s', CsText.replace(/[^\d.\-]/g,'')]);
+  rows.push(['V_kN', VText.replace(/[^\d.\-]/g,'')]);
+  rows.push([]);
+  rows.push(['story','mass_kN','wi_hi','Fi_kN','cumulative_kN']);
+  document.querySelectorAll('#storyTbl tbody tr').forEach(tr=>{
+    const cols = Array.from(tr.querySelectorAll('td')).map(td=>td.textContent.replace(/,/g,''));
+    rows.push(cols);
+  });
+  const csv = rows.map(r=> r.map(c => `"${c}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'seismic_results.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* Print / Save PDF (via browser print) */
+document.getElementById('printBtn').addEventListener('click', ()=> {
+  if(document.getElementById('CsOut').textContent === '—'){ alert('Compute results first'); return; }
+  window.print();
+});
+
+/* small UX: allow Enter key to compute */
+document.addEventListener('keydown', (e)=> { if(e.key === 'Enter' && document.activeElement.tagName !== 'TEXTAREA') { document.getElementById('computeBtn').click(); } });
+</script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
